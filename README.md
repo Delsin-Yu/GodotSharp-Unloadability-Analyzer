@@ -39,7 +39,7 @@ Add a `ProjectReference` to your Godot project's `.csproj`:
 </ItemGroup>
 ```
 
-All 14 diagnostics are enabled by default as warnings. Suppress individual rules via `.editorconfig` or `#pragma warning disable`:
+All 12 diagnostics are enabled by default as warnings. Suppress individual rules via `.editorconfig` or `#pragma warning disable`:
 
 ```ini
 # .editorconfig
