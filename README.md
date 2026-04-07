@@ -47,6 +47,14 @@ All 12 diagnostics are enabled by default as warnings. Suppress individual rules
 dotnet_diagnostic.GDU0001.severity = none
 ```
 
+## Limitations
+
+- **Compiled packages only expose metadata.** The analyzer operates on source code via Roslyn syntax/semantic analysis. Code inside pre-compiled NuGet packages or referenced assemblies cannot be inspected — if a third-party library internally uses patterns like `GCHandle.Alloc` or `new Thread(...)`, this analyzer will not detect them.
+- **Only `[Tool]`-annotated types are analyzed.** Diagnostics are only reported for types (or types nested within types) marked with `[Tool]`, since only those types execute inside the Godot editor where ALC unloading applies.
+- **No data-flow or inter-procedural analysis.** The analyzer checks for direct API usage at the call site. Indirect usage through helper methods, reflection, or dynamic dispatch is not detected.
+
+We welcome community contributions of additional unloadability-hazard patterns. If you encounter a case that this analyzer does not cover, please open an issue with a minimal reproduction.
+
 ## References
 
 - [Debugging assembly unloadability issues](https://learn.microsoft.com/en-us/dotnet/standard/assembly/unloadability#troubleshoot-unloadability-issues)
