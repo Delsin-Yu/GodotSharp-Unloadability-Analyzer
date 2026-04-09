@@ -5,7 +5,7 @@ namespace GDUnloadabilityAnalyzer;
 internal static class DiagnosticDescriptors
 {
     private const string Category = "Unloadability";
-    private const string HelpLinkUri = "https://learn.microsoft.com/en-us/dotnet/standard/assembly/unloadability#troubleshoot-unloadability-issues";
+    private const string RulesBaseUri = "https://github.com/Delsin-Yu/GodotSharp-Unloadability-Analyzer/blob/main/RULES.md";
 
     // ── Category A — Reference-Escaping API Calls ───────────────────────
 
@@ -17,7 +17,7 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Subscribing to events on shared types like AppDomain, TaskScheduler, or Console creates delegate roots that prevent the collectible assembly from being unloaded. Unsubscribe from the event before the AssemblyLoadContext unloads to avoid leaking.",
-        helpLinkUri: HelpLinkUri);
+        helpLinkUri: RulesBaseUri + "#gdu0001--subscription-to-external-static-event");
 
     public static readonly DiagnosticDescriptor GDU0002_GCHandleAlloc = new(
         id: "GDU0002",
@@ -27,7 +27,7 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Normal and Pinned GCHandles create strong GC roots. If the handle is not freed before unloading, the collectible assembly cannot be reclaimed. Suppress this warning if you are sure the handle will be freed before unloading.",
-        helpLinkUri: HelpLinkUri);
+        helpLinkUri: RulesBaseUri + "#gdu0002--gchandlealloc-usage");
 
     public static readonly DiagnosticDescriptor GDU0003_ThreadPoolRegisterWaitForSingleObject = new(
         id: "GDU0003",
@@ -37,7 +37,7 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "RegisteredWaitHandle holds a reference to the callback delegate, keeping the collectible assembly rooted and preventing unload. Call RegisteredWaitHandle.Unregister before the AssemblyLoadContext unloads to avoid leaking.",
-        helpLinkUri: HelpLinkUri);
+        helpLinkUri: RulesBaseUri + "#gdu0003--threadpoolregisterwaitforsingleobject");
 
     // ── Category B — Known Problematic Type-Caching APIs ────────────────
 
@@ -49,7 +49,7 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "The internal JsonSerializerOptions cache holds Type references from the collectible assembly, preventing it from being unloaded. It may be possible to clear the cache via reflection before unloading.",
-        helpLinkUri: HelpLinkUri);
+        helpLinkUri: RulesBaseUri + "#gdu0004--systemtextjson-serialization");
 
     public static readonly DiagnosticDescriptor GDU0005_NewtonsoftJsonSerialization = new(
         id: "GDU0005",
@@ -59,7 +59,7 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "The internal contract resolver in Newtonsoft.Json caches type metadata, preventing the collectible assembly from being unloaded. It may be possible to clear the cache via reflection before unloading.",
-        helpLinkUri: HelpLinkUri);
+        helpLinkUri: RulesBaseUri + "#gdu0005--newtonsoftjson-serialization");
 
     public static readonly DiagnosticDescriptor GDU0006_TypeDescriptorModification = new(
         id: "GDU0006",
@@ -69,7 +69,7 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "TypeDescriptor registers type metadata in global stores (e.g. via AddProvider, AddAttributes, or Refresh) that are never cleared, preventing the collectible assembly from being unloaded. This is mainly used by WinForms/WPF design-time infrastructure and is rare in Godot projects.",
-        helpLinkUri: HelpLinkUri);
+        helpLinkUri: RulesBaseUri + "#gdu0006--typedescriptor-modification");
 
     // ── Category C — Thread/Timer/Task ──────────────────────────────────
 
@@ -81,7 +81,7 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Threads running methods from a collectible assembly prevent the AssemblyLoadContext from being unloaded until the thread completes. Suppress this warning if you ensure the thread exits before unloading.",
-        helpLinkUri: HelpLinkUri);
+        helpLinkUri: RulesBaseUri + "#gdu0007--thread-creation");
 
     public static readonly DiagnosticDescriptor GDU0008_TimerCreation = new(
         id: "GDU0008",
@@ -91,7 +91,7 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Timer callbacks hold references to methods from the collectible assembly, preventing the AssemblyLoadContext from being unloaded. Dispose the Timer before unloading to avoid leaking.",
-        helpLinkUri: HelpLinkUri);
+        helpLinkUri: RulesBaseUri + "#gdu0008--timer-creation");
 
     public static readonly DiagnosticDescriptor GDU0010_TaskRun = new(
         id: "GDU0010",
@@ -101,7 +101,7 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Task.Run schedules a callback on the thread pool. While the task is executing, the callback delegate roots the collectible assembly, preventing unload. Suppress this warning if you ensure the task completes before unloading.",
-        helpLinkUri: HelpLinkUri);
+        helpLinkUri: RulesBaseUri + "#gdu0010--taskrun-usage");
 
     public static readonly DiagnosticDescriptor GDU0011_ThreadPoolQueueUserWorkItem = new(
         id: "GDU0011",
@@ -111,7 +111,7 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "ThreadPool.QueueUserWorkItem schedules a callback. While executing, the callback delegate roots the collectible assembly, preventing unload. Suppress this warning if you ensure the work item completes before unloading.",
-        helpLinkUri: HelpLinkUri);
+        helpLinkUri: RulesBaseUri + "#gdu0011--threadpoolqueueuserworkitem");
 
     // ── Category D — Global Registration ────────────────────────────────
 
@@ -123,5 +123,5 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Encoding.RegisterProvider adds the provider to a global list that is never cleared, preventing the collectible assembly from being unloaded. There is no way to unregister a provider; avoid this call in collectible assemblies.",
-        helpLinkUri: HelpLinkUri);
+        helpLinkUri: RulesBaseUri + "#gdu0009--encodingregisterprovider");
 }

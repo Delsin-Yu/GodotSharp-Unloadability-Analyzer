@@ -12,7 +12,8 @@ When the Godot editor reloads C# assemblies (e.g. after a rebuild), it unloads t
 
 ## Diagnostic Rules
 
-All rules are empirically validated — see [`ValidationProjects/`](ValidationProjects/) for test results.
+All rules are empirically validated — see [`ValidationProjects/`](ValidationProjects/) for test results.  
+For detailed explanations and resolution guidance, see [**RULES.md**](RULES.md).
 
 | ID | Category | Pattern | Cleanup Possible? |
 |----|----------|---------|-------------------|
