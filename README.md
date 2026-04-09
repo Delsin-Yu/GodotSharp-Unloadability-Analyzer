@@ -12,20 +12,21 @@ When the Godot editor reloads C# assemblies (e.g. after a rebuild), it unloads t
 
 ## Diagnostic Rules
 
-| ID | Category | Description |
-|----|----------|-------------|
-| GDU0001 | Declaration-Level | `[ThreadStatic]` field |
-| GDU0002 | Reference-Escaping | Subscription to external static event |
-| GDU0003 | Reference-Escaping | `GCHandle.Alloc` usage |
-| GDU0004 | Reference-Escaping | `Marshal.GetFunctionPointerForDelegate` usage |
-| GDU0005 | Reference-Escaping | `ThreadPool.RegisterWaitForSingleObject` usage |
-| GDU0006 | Type-Caching | `System.Text.Json` serialization |
-| GDU0007 | Type-Caching | `Newtonsoft.Json` serialization |
-| GDU0008 | Type-Caching | `XmlSerializer` construction |
-| GDU0009 | Type-Caching | `TypeDescriptor` modification |
-| GDU0010 | Thread/Timer | `Thread` creation |
-| GDU0011 | Thread/Timer | `Timer` creation |
-| GDU0012 | Global Registration | `Encoding.RegisterProvider` usage |
+All rules are empirically validated — see [`ValidationProjects/`](ValidationProjects/) for test results.
+
+| ID | Category | Pattern | Cleanup Possible? |
+|----|----------|---------|-------------------|
+| GDU0001 | Reference-Escaping | Subscribing to a static event on a root-ALC type (e.g. `Console.CancelKeyPress += ...`) | Yes — unsubscribe before unload |
+| GDU0002 | Reference-Escaping | `GCHandle.Alloc` without a matching `Free` | Yes — call `GCHandle.Free` before unload |
+| GDU0003 | Reference-Escaping | `ThreadPool.RegisterWaitForSingleObject` | Yes — call `RegisteredWaitHandle.Unregister` before unload |
+| GDU0004 | Type-Caching | `System.Text.Json` serialization (`JsonSerializer.Serialize/Deserialize`) | Maybe — internal cache can potentially be cleared via reflection |
+| GDU0005 | Type-Caching | `Newtonsoft.Json` serialization (`JsonConvert.SerializeObject/DeserializeObject`) | Maybe — internal cache can potentially be cleared via reflection |
+| GDU0006 | Type-Caching | `TypeDescriptor.AddProvider/AddAttributes/Refresh` | No — global store is never cleared |
+| GDU0007 | Thread/Timer/Task | `new Thread(...)` with a plugin method | Yes — ensure thread exits before unload |
+| GDU0008 | Thread/Timer/Task | `new Timer(...)` with a plugin callback | Yes — dispose the timer before unload |
+| GDU0009 | Global Registration | `Encoding.RegisterProvider` | No — providers cannot be unregistered |
+| GDU0010 | Thread/Timer/Task | `Task.Run(...)` with a plugin callback | Yes — ensure task completes before unload |
+| GDU0011 | Thread/Timer/Task | `ThreadPool.QueueUserWorkItem(...)` with a plugin callback | Yes — ensure work item completes before unload |
 
 ## Usage
 
@@ -39,7 +40,7 @@ Add a `ProjectReference` to your Godot project's `.csproj`:
 </ItemGroup>
 ```
 
-All 12 diagnostics are enabled by default as warnings. Suppress individual rules via `.editorconfig` or `#pragma warning disable`:
+All 11 diagnostics are enabled by default as warnings. Suppress individual rules via `.editorconfig` or `#pragma warning disable`:
 
 ```ini
 # .editorconfig
