@@ -102,6 +102,11 @@
 | `Task.Run(callback)` | Warning | Task.Run with a long-running callback from a collectible assembly prevents unloading while the task is active. |
 | `ThreadPool.QueueUserWorkItem(callback)` | Warning | Same as Task.Run — the thread pool work item's callback roots the ALC. |
 
+### Cache-Clearing Workaround Validated
+| Pattern | Plugin | Result |
+|---------|--------|--------|
+| `JsonSerializerOptionsUpdateHandler.ClearCache` via reflection | Plugin.SystemTextJsonClearCache | ✅ PASS — Calling `ClearCache(null)` after serialization successfully clears the internal type cache, allowing the ALC to unload. |
+
 ---
 
 ## 4. Test Environment Notes

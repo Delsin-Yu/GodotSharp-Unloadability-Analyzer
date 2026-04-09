@@ -12,7 +12,6 @@ When the Godot editor reloads C# assemblies (e.g. after a rebuild), it unloads t
 
 ## Diagnostic Rules
 
-All rules are empirically validated — see [`ValidationProjects/`](ValidationProjects/) for test results.  
 For detailed explanations and resolution guidance, see [**RULES.md**](RULES.md).
 
 | ID | Category | Pattern | Cleanup Possible? |
@@ -20,8 +19,8 @@ For detailed explanations and resolution guidance, see [**RULES.md**](RULES.md).
 | GDU0001 | Reference-Escaping | Subscribing to a static event on a root-ALC type (e.g. `Console.CancelKeyPress += ...`) | Yes — unsubscribe before unload |
 | GDU0002 | Reference-Escaping | `GCHandle.Alloc` without a matching `Free` | Yes — call `GCHandle.Free` before unload |
 | GDU0003 | Reference-Escaping | `ThreadPool.RegisterWaitForSingleObject` | Yes — call `RegisteredWaitHandle.Unregister` before unload |
-| GDU0004 | Type-Caching | `System.Text.Json` serialization (`JsonSerializer.Serialize/Deserialize`) | Maybe — internal cache can potentially be cleared via reflection |
-| GDU0005 | Type-Caching | `Newtonsoft.Json` serialization (`JsonConvert.SerializeObject/DeserializeObject`) | Maybe — internal cache can potentially be cleared via reflection |
+| GDU0004 | Type-Caching | `System.Text.Json` serialization (`JsonSerializer.Serialize/Deserialize`) | Yes (unsupported) — clear internal cache via reflection before unload ([details](RULES.md#gdu0004--systemtextjson-serialization)) |
+| GDU0005 | Type-Caching | `Newtonsoft.Json` serialization (`JsonConvert.SerializeObject/DeserializeObject`) | No — multiple static caches cannot be cleared ([details](RULES.md#gdu0005--newtonsoftjson-serialization)) |
 | GDU0006 | Type-Caching | `TypeDescriptor.AddProvider/AddAttributes/Refresh` | No — global store is never cleared |
 | GDU0007 | Thread/Timer/Task | `new Thread(...)` with a plugin method | Yes — ensure thread exits before unload |
 | GDU0008 | Thread/Timer/Task | `new Timer(...)` with a plugin callback | Yes — dispose the timer before unload |

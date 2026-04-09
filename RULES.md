@@ -1,7 +1,5 @@
 # Diagnostic Rules Reference
 
-Each rule is empirically validated — see [`ValidationProjects/`](ValidationProjects/) for the test harness and results.
-
 Only types annotated with `[Tool]` (or nested within `[Tool]` types) are analyzed, since only those types execute inside the Godot editor where `AssemblyLoadContext` unloading applies.
 
 ### Registering cleanup code in Godot
@@ -139,7 +137,26 @@ var obj = JsonSerializer.Deserialize<MyData>(json);
 
 ### Fix
 
-It may be possible to clear the internal cache via reflection before unloading. Alternatively, avoid serializing plugin-defined types directly; use intermediate DTOs defined in a shared (non-collectible) assembly.
+Clear the internal cache via `JsonSerializerOptionsUpdateHandler.ClearCache` before unloading:
+
+> **Warning**: This is not an officially supported .NET API. `JsonSerializerOptionsUpdateHandler` is an internal implementation detail that may change or be removed in future .NET versions. Use at your own risk.
+
+```csharp
+using System.Reflection;
+using System.Text.Json;
+
+void ClearJsonSerializerCache()
+{
+    var assembly = typeof(JsonSerializerOptions).Assembly;
+    var updateHandlerType = assembly.GetType("System.Text.Json.JsonSerializerOptionsUpdateHandler");
+    var clearCacheMethod = updateHandlerType?.GetMethod("ClearCache", BindingFlags.Static | BindingFlags.Public);
+    clearCacheMethod?.Invoke(null, new object[] { null! });
+}
+```
+
+In Godot, call this via the `AssemblyLoadContext.Unloading` callback (see [pattern above](#registering-cleanup-code-in-godot)).
+
+Alternatively, avoid serializing plugin-defined types directly; use intermediate DTOs defined in a shared (non-collectible) assembly.
 
 ---
 
@@ -159,9 +176,11 @@ var json = JsonConvert.SerializeObject(new MyData());
 
 ### Fix
 
-It may be possible to clear the internal cache via reflection before unloading. Alternatively, use a dedicated `IContractResolver` per collectible assembly and discard it before unloading.
+**Newtonsoft.Json has no reliable way to clear all internal caches.** The library's serialization path touches BCL-level caching infrastructure (e.g., `System.ComponentModel`, `TypeDescriptor`) whose static stores live in the root `AssemblyLoadContext` and are never cleared. Even when Newtonsoft.Json itself is loaded into the same collectible ALC as the plugin, these BCL-level caches still prevent unloading.
 
-> **Note**: If Newtonsoft.Json is loaded in the *same* collectible ALC as the plugin (not in the root ALC), its caches should be collectible together. The severity of this issue depends on the assembly loading configuration.
+**Recommended approach**: Avoid serializing plugin-defined types with Newtonsoft.Json. Use intermediate DTOs defined in a shared (non-collectible) assembly, or switch to `System.Text.Json` where the cache can be cleared (see [GDU0004](#gdu0004--systemtextjson-serialization)).
+
+> **Note**: See [Newtonsoft.Json issue #2253](https://github.com/JamesNK/Newtonsoft.Json/issues/2253) and [#2414](https://github.com/JamesNK/Newtonsoft.Json/issues/2414) for community discussion on this limitation.
 
 ---
 
@@ -184,7 +203,7 @@ TypeDescriptor.Refresh(typeof(MyType));
 
 There is no way to clear the global TypeDescriptor stores. Avoid calling these methods with types from collectible assemblies.
 
-`TypeDescriptor` is primarily used by WinForms/WPF design-time infrastructure and is rare in Godot projects. If you encounter this warning, check whether a third-party library is calling TypeDescriptor internally.
+`TypeDescriptor` is primarily used by WinForms/WPF design-time infrastructure and is rare in Godot projects.
 
 ---
 

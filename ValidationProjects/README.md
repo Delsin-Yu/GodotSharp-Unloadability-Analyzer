@@ -29,6 +29,7 @@ dotnet run --project PluginHost -- Plugins\Plugin.GCHandle\bin\Debug\net10.0\Plu
 | Plugin.GCHandle | `GCHandle.Alloc(new LocalType())` without `Free()` | GDU0002 |
 | Plugin.ThreadPoolRegisterWait | `ThreadPool.RegisterWaitForSingleObject(...)` | GDU0003 |
 | Plugin.SystemTextJson | `JsonSerializer.Serialize(localType)` | GDU0004 |
+| Plugin.SystemTextJsonClearCache | `JsonSerializer.Serialize` + `ClearCache` via reflection | GDU0004 workaround — **PASS** |
 | Plugin.NewtonsoftJson | `JsonConvert.SerializeObject(localType)` | GDU0005 |
 | Plugin.TypeDescriptor | `TypeDescriptor.AddProvider(...)` | GDU0006 |
 | Plugin.ThreadCreation | `new Thread(() => Sleep(∞)).Start()` | GDU0007 |
