@@ -1,0 +1,21 @@
+<Solution>
+  <Project Path="PluginHost/PluginHost.csproj" />
+  <Project Path="Plugins/Plugin.Baseline/Plugin.Baseline.csproj" />
+  <Project Path="Plugins/Plugin.ThreadStatic/Plugin.ThreadStatic.csproj" />
+  <Project Path="Plugins/Plugin.ExternalStaticEvent/Plugin.ExternalStaticEvent.csproj" />
+  <Project Path="Plugins/Plugin.GCHandle/Plugin.GCHandle.csproj" />
+  <Project Path="Plugins/Plugin.MarshalFnPtr/Plugin.MarshalFnPtr.csproj" />
+  <Project Path="Plugins/Plugin.ThreadPoolRegisterWait/Plugin.ThreadPoolRegisterWait.csproj" />
+  <Project Path="Plugins/Plugin.SystemTextJson/Plugin.SystemTextJson.csproj" />
+  <Project Path="Plugins/Plugin.NewtonsoftJson/Plugin.NewtonsoftJson.csproj" />
+  <Project Path="Plugins/Plugin.XmlSerializer/Plugin.XmlSerializer.csproj" />
+  <Project Path="Plugins/Plugin.TypeDescriptor/Plugin.TypeDescriptor.csproj" />
+  <Project Path="Plugins/Plugin.ThreadCreation/Plugin.ThreadCreation.csproj" />
+  <Project Path="Plugins/Plugin.TimerCreation/Plugin.TimerCreation.csproj" />
+  <Project Path="Plugins/Plugin.EncodingRegisterProvider/Plugin.EncodingRegisterProvider.csproj" />
+  <Project Path="Plugins/Plugin.TaskRun/Plugin.TaskRun.csproj" />
+  <Project Path="Plugins/Plugin.ThreadPoolQueueWork/Plugin.ThreadPoolQueueWork.csproj" />
+  <Project Path="Plugins/Plugin.MarshalFnPtrStatic/Plugin.MarshalFnPtrStatic.csproj" />
+  <Project Path="Plugins/Plugin.MethodHandleGetFnPtr/Plugin.MethodHandleGetFnPtr.csproj" />
+  <Project Path="Plugins/Plugin.FunctionPointer/Plugin.FunctionPointer.csproj" />
+</Solution>
