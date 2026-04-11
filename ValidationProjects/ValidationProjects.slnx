@@ -4,12 +4,15 @@
   <Project Path="Plugins/Plugin.ThreadStatic/Plugin.ThreadStatic.csproj" />
   <Project Path="Plugins/Plugin.ExternalStaticEvent/Plugin.ExternalStaticEvent.csproj" />
   <Project Path="Plugins/Plugin.GCHandle/Plugin.GCHandle.csproj" />
+  <Project Path="Plugins/Plugin.GCHandleCleanup/Plugin.GCHandleCleanup.csproj" />
   <Project Path="Plugins/Plugin.MarshalFnPtr/Plugin.MarshalFnPtr.csproj" />
   <Project Path="Plugins/Plugin.ThreadPoolRegisterWait/Plugin.ThreadPoolRegisterWait.csproj" />
   <Project Path="Plugins/Plugin.SystemTextJson/Plugin.SystemTextJson.csproj" />
   <Project Path="Plugins/Plugin.SystemTextJsonClearCache/Plugin.SystemTextJsonClearCache.csproj" />
+  <Project Path="Plugins/Plugin.SystemTextJsonClearCacheComplex/Plugin.SystemTextJsonClearCacheComplex.csproj" />
   <Project Path="Plugins/Plugin.NewtonsoftJson/Plugin.NewtonsoftJson.csproj" />
   <Project Path="Plugins/Plugin.NewtonsoftJsonPinPointClear/Plugin.NewtonsoftJsonPinPointClear.csproj" />
+  <Project Path="Plugins/Plugin.NewtonsoftJsonPinPointClearComplex/Plugin.NewtonsoftJsonPinPointClearComplex.csproj" />
   <Project Path="Plugins/Plugin.NewtonsoftJsonBruteForceClear/Plugin.NewtonsoftJsonBruteForceClear.csproj" />
   <Project Path="Plugins/Plugin.XmlSerializer/Plugin.XmlSerializer.csproj" />
   <Project Path="Plugins/Plugin.TypeDescriptor/Plugin.TypeDescriptor.csproj" />
@@ -23,4 +26,12 @@
   <Project Path="Plugins/Plugin.MarshalFnPtrStatic/Plugin.MarshalFnPtrStatic.csproj" />
   <Project Path="Plugins/Plugin.MethodHandleGetFnPtr/Plugin.MethodHandleGetFnPtr.csproj" />
   <Project Path="Plugins/Plugin.FunctionPointer/Plugin.FunctionPointer.csproj" />
+  <Project Path="Plugins/Plugin.NewtonsoftJsonPinPointClearConcurrent/Plugin.NewtonsoftJsonPinPointClearConcurrent.csproj" />
+  <Project Path="Plugins/Plugin.SystemTextJsonClearCacheConcurrent/Plugin.SystemTextJsonClearCacheConcurrent.csproj" />
+  <Project Path="Plugins/Plugin.NewtonsoftJsonPinPointClearCycleA/Plugin.NewtonsoftJsonPinPointClearCycleA.csproj" />
+  <Project Path="Plugins/Plugin.NewtonsoftJsonPinPointClearCycleB/Plugin.NewtonsoftJsonPinPointClearCycleB.csproj" />
+  <Project Path="Plugins/Plugin.TypeDescriptorCycleA/Plugin.TypeDescriptorCycleA.csproj" />
+  <Project Path="Plugins/Plugin.TypeDescriptorCycleB/Plugin.TypeDescriptorCycleB.csproj" />
+  <Project Path="Plugins/Plugin.EncodingCycleA/Plugin.EncodingCycleA.csproj" />
+  <Project Path="Plugins/Plugin.EncodingCycleB/Plugin.EncodingCycleB.csproj" />
 </Solution>
