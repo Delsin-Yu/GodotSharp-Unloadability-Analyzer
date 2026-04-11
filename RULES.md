@@ -167,18 +167,115 @@ Alternatively, avoid serializing plugin-defined types directly; use intermediate
 
 ### Problem
 
-`Newtonsoft.Json` caches contract metadata (via `DefaultContractResolver`) keyed by Type. If Newtonsoft.Json is loaded in the root ALC (e.g., by the host), these cached references keep the plugin assembly rooted.
+Newtonsoft.Json's serialization path calls `TypeDescriptor.GetConverter(type)` during contract resolution (`DefaultContractResolver.CreateContract` → `JsonTypeReflector.CanTypeDescriptorConvertString`). This populates several `System.ComponentModel` caches in the root `AssemblyLoadContext` with references to the collectible plugin type, preventing unloading.
+
+Newtonsoft.Json's own internal caches (`DefaultContractResolver._contractCache`, `JsonTypeReflector` caches, etc.) are **not** the issue — when Newtonsoft.Json is loaded into the same collectible ALC as the plugin (via `CopyLocalLockFileAssemblies`), those caches are collected along with the ALC. The leak comes exclusively from the cross-ALC `TypeDescriptor` / `ReflectTypeDescriptionProvider` state.
 
 ```csharp
-// BAD: Caches typeof(MyData) in the contract resolver.
+// BAD: Populates TypeDescriptor caches with typeof(MyData) in the root ALC.
 var json = JsonConvert.SerializeObject(new MyData());
 ```
 
 ### Fix
 
-**Newtonsoft.Json has no reliable way to clear all internal caches.** The library's serialization path touches BCL-level caching infrastructure (e.g., `System.ComponentModel`, `TypeDescriptor`) whose static stores live in the root `AssemblyLoadContext` and are never cleared. Even when Newtonsoft.Json itself is loaded into the same collectible ALC as the plugin, these BCL-level caches still prevent unloading.
+Clear the `System.ComponentModel` caches that root the collectible assembly after serialization. The validated cleanup on .NET 10 targets three runtime-internal roots after a public `TypeDescriptor.Refresh`:
 
-**Recommended approach**: Avoid serializing plugin-defined types with Newtonsoft.Json. Use intermediate DTOs defined in a shared (non-collectible) assembly, or switch to `System.Text.Json` where the cache can be cleared (see [GDU0004](#gdu0004--systemtextjson-serialization)).
+> **Warning**: This cleanup uses runtime-internal `System.ComponentModel` fields (`TypeDescriptor._defaultProviderInitialized`, `ReflectTypeDescriptionProvider._typeData`, `ReflectTypeDescriptionProvider.s_attributeCache`). These are implementation details that may change across .NET versions. Validated on .NET 10 / Windows x64.
+
+```csharp
+using System.Collections;
+using System.ComponentModel;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+
+public static class TypeDescriptorCacheCleaner
+{
+    /// <summary>
+    /// Clears TypeDescriptor/ReflectTypeDescriptionProvider caches that reference types
+    /// from the calling assembly, allowing a collectible AssemblyLoadContext to unload
+    /// after Newtonsoft.Json (or other TypeDescriptor-triggering) serialization.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ClearCache()
+    {
+        const BindingFlags instanceFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+        var callingAssembly = Assembly.GetCallingAssembly();
+        var runtime = typeof(TypeDescriptor).Assembly;
+        var reflectProviderType = runtime.GetType("System.ComponentModel.ReflectTypeDescriptionProvider")!;
+        var nodeType = runtime.GetType("System.ComponentModel.TypeDescriptor+TypeDescriptionNode")!;
+
+        TypeDescriptor.Refresh(callingAssembly);
+        Prune(StaticField<IDictionary>(typeof(TypeDescriptor),
+            "_defaultProviderInitialized", "s_defaultProviderInitialized"));
+
+        foreach (var entry in Snapshot(StaticField<IDictionary>(typeof(TypeDescriptor),
+            "_providerTable", "s_providerTable")))
+            for (var node = entry.Value; node != null && nodeType.IsInstanceOfType(node);
+                 node = InstanceField(node, "Next"))
+                if (InstanceField(node, "Provider") is var provider
+                    && reflectProviderType.IsInstanceOfType(provider))
+                    Prune((IDictionary)(InstanceField(provider, "_typeData")
+                        ?? throw new InvalidOperationException("_typeData was null")));
+
+        Prune(StaticField<IDictionary>(reflectProviderType, "s_attributeCache"));
+        return;
+
+        void Prune(IDictionary dict)
+        {
+            foreach (var e in Snapshot(dict))
+                if (Matches(e.Key) || Matches(e.Value))
+                    dict.Remove(e.Key);
+        }
+
+        bool Matches(object? value)
+        {
+            if (value == null) return false;
+            if (ReferenceEquals(value, callingAssembly)) return true;
+            switch (value)
+            {
+                case Type t: return ReferenceEquals(t.Assembly, callingAssembly);
+                case Assembly a: return ReferenceEquals(a, callingAssembly);
+                case MemberInfo m: return ReferenceEquals(m.Module.Assembly, callingAssembly);
+                case WeakReference w: return Matches(w.Target);
+            }
+            foreach (var name in new[] { "Target", "target", "_target" })
+            {
+                try { if (value.GetType().GetProperty(name, instanceFlags) is { } prop
+                    && prop.GetIndexParameters().Length == 0
+                    && prop.GetValue(value) is var t && !ReferenceEquals(t, value)
+                    && Matches(t)) return true; } catch { }
+                try { if (value.GetType().GetField(name, instanceFlags)?.GetValue(value) is var t
+                    && !ReferenceEquals(t, value) && Matches(t)) return true; } catch { }
+            }
+            return ReferenceEquals(value.GetType().Assembly, callingAssembly);
+        }
+
+        static DictionaryEntry[] Snapshot(IDictionary dict)
+        { var a = new DictionaryEntry[dict.Count]; dict.CopyTo(a, 0); return a; }
+
+        static T StaticField<T>(Type type, params string[] names)
+        {
+            const BindingFlags f = BindingFlags.Public | BindingFlags.NonPublic
+                | BindingFlags.Static | BindingFlags.FlattenHierarchy;
+            foreach (var n in names)
+            { var field = type.GetField(n, f); if (field != null)
+                return (T)(field.GetValue(null) ?? throw new InvalidOperationException($"{n} was null")); }
+            throw new MissingFieldException(type.FullName, string.Join("/", names));
+        }
+
+        static object? InstanceField(object instance, string name)
+        {
+            const BindingFlags f = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+            return (instance.GetType().GetField(name, f)
+                ?? throw new MissingFieldException(instance.GetType().FullName, name)).GetValue(instance);
+        }
+    }
+}
+```
+
+In Godot, call `TypeDescriptorCacheCleaner.ClearCache()` after serialization or via the `AssemblyLoadContext.Unloading` callback (see [pattern above](#registering-cleanup-code-in-godot)).
+
+Alternatively, avoid serializing plugin-defined types with Newtonsoft.Json entirely. Use intermediate DTOs defined in a shared (non-collectible) assembly, or switch to `System.Text.Json` where the cache can be cleared more simply (see [GDU0004](#gdu0004--systemtextjson-serialization)).
 
 > **Note**: See [Newtonsoft.Json issue #2253](https://github.com/JamesNK/Newtonsoft.Json/issues/2253) and [#2414](https://github.com/JamesNK/Newtonsoft.Json/issues/2414) for community discussion on this limitation.
 
@@ -201,7 +298,19 @@ TypeDescriptor.Refresh(typeof(MyType));
 
 ### Fix
 
-There is no way to clear the global TypeDescriptor stores. Avoid calling these methods with types from collectible assemblies.
+Call `TypeDescriptor.RemoveProvider(provider, type)` to remove the explicitly-added provider, then clear the remaining `TypeDescriptor` / `ReflectTypeDescriptionProvider` caches using the same pinpoint cleanup as [GDU0005](#gdu0005--newtonsoftjson-serialization).
+
+> **Warning**: The cache cleanup uses the same runtime-internal `System.ComponentModel` fields as the Newtonsoft.Json workaround. Validated on .NET 10 / Windows x64.
+
+```csharp
+// 1. Remove the provider (public API):
+TypeDescriptor.RemoveProvider(provider, typeof(MyType));
+
+// 2. Clear remaining caches (same utility as GDU0005):
+TypeDescriptorCacheCleaner.ClearCache();
+```
+
+In Godot, register cleanup via the `AssemblyLoadContext.Unloading` callback (see [pattern above](#registering-cleanup-code-in-godot)). You must retain a reference to the provider instance so it can be passed to `RemoveProvider`.
 
 `TypeDescriptor` is primarily used by WinForms/WPF design-time infrastructure and is rare in Godot projects.
 
@@ -285,7 +394,40 @@ Encoding.RegisterProvider(new MyEncodingProvider());
 
 ### Fix
 
-There is no way to unregister an encoding provider once registered. Avoid calling `Encoding.RegisterProvider` from collectible assemblies entirely.
+Remove the registered provider from the internal `EncodingProvider.s_providers` array via reflection before unloading:
+
+> **Warning**: `EncodingProvider.s_providers` is a private static field. This is a runtime implementation detail that may change across .NET versions. Validated on .NET 10 / Windows x64.
+
+```csharp
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text;
+
+public static class EncodingProviderCleaner
+{
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void RemoveCollectibleProviders()
+    {
+        var callingAssembly = Assembly.GetCallingAssembly();
+        var field = typeof(EncodingProvider).GetField(
+            "s_providers",
+            BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(nameof(EncodingProvider), "s_providers");
+
+        var providers = (EncodingProvider[]?)field.GetValue(null);
+        if (providers is null) return;
+
+        var cleaned = providers
+            .Where(p => !ReferenceEquals(p.GetType().Assembly, callingAssembly))
+            .ToArray();
+        field.SetValue(null, cleaned.Length == 0 ? null : cleaned);
+    }
+}
+```
+
+In Godot, call `EncodingProviderCleaner.RemoveCollectibleProviders()` via the `AssemblyLoadContext.Unloading` callback (see [pattern above](#registering-cleanup-code-in-godot)).
+
+Alternatively, avoid calling `Encoding.RegisterProvider` from collectible assemblies entirely.
 
 ---
 

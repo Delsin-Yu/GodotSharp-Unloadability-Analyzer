@@ -34,12 +34,17 @@ $plugins = @(
     'Plugin.MarshalFnPtr'
     'Plugin.ThreadPoolRegisterWait'
     'Plugin.SystemTextJson'
+    'Plugin.SystemTextJsonClearCache'
     'Plugin.NewtonsoftJson'
+    'Plugin.NewtonsoftJsonPinPointClear'
+    'Plugin.NewtonsoftJsonBruteForceClear'
     'Plugin.XmlSerializer'
     'Plugin.TypeDescriptor'
+    'Plugin.TypeDescriptorCleanup'
     'Plugin.ThreadCreation'
     'Plugin.TimerCreation'
     'Plugin.EncodingRegisterProvider'
+    'Plugin.EncodingRegisterProviderCleanup'
     'Plugin.TaskRun'
     'Plugin.ThreadPoolQueueWork'
     'Plugin.MarshalFnPtrStatic'
@@ -54,12 +59,12 @@ foreach ($name in $plugins) {
     $index++
     $dll = Join-Path $pluginsDir "$name\bin\Debug\net10.0\$name.dll"
     if (-not (Test-Path $dll)) {
-        Write-Host "[$index/18] $name — DLL NOT FOUND: $dll" -ForegroundColor Red
+        Write-Host "[$index/$($plugins.Count)] $name — DLL NOT FOUND: $dll" -ForegroundColor Red
         $results += [pscustomobject]@{ Index=$index; Plugin=$name; Result='ERROR'; Output='DLL not found' }
         continue
     }
 
-    Write-Host "[$index/18] $name ..." -NoNewline
+    Write-Host "[$index/$($plugins.Count)] $name ..." -NoNewline
     $output = ''
     $proc = Start-Process -FilePath 'dotnet' `
         -ArgumentList "run --project `"$hostProj`" -- `"$dll`"" `

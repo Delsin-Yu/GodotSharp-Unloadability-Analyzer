@@ -9,11 +9,15 @@
   <Project Path="Plugins/Plugin.SystemTextJson/Plugin.SystemTextJson.csproj" />
   <Project Path="Plugins/Plugin.SystemTextJsonClearCache/Plugin.SystemTextJsonClearCache.csproj" />
   <Project Path="Plugins/Plugin.NewtonsoftJson/Plugin.NewtonsoftJson.csproj" />
+  <Project Path="Plugins/Plugin.NewtonsoftJsonPinPointClear/Plugin.NewtonsoftJsonPinPointClear.csproj" />
+  <Project Path="Plugins/Plugin.NewtonsoftJsonBruteForceClear/Plugin.NewtonsoftJsonBruteForceClear.csproj" />
   <Project Path="Plugins/Plugin.XmlSerializer/Plugin.XmlSerializer.csproj" />
   <Project Path="Plugins/Plugin.TypeDescriptor/Plugin.TypeDescriptor.csproj" />
+  <Project Path="Plugins/Plugin.TypeDescriptorCleanup/Plugin.TypeDescriptorCleanup.csproj" />
   <Project Path="Plugins/Plugin.ThreadCreation/Plugin.ThreadCreation.csproj" />
   <Project Path="Plugins/Plugin.TimerCreation/Plugin.TimerCreation.csproj" />
   <Project Path="Plugins/Plugin.EncodingRegisterProvider/Plugin.EncodingRegisterProvider.csproj" />
+  <Project Path="Plugins/Plugin.EncodingRegisterProviderCleanup/Plugin.EncodingRegisterProviderCleanup.csproj" />
   <Project Path="Plugins/Plugin.TaskRun/Plugin.TaskRun.csproj" />
   <Project Path="Plugins/Plugin.ThreadPoolQueueWork/Plugin.ThreadPoolQueueWork.csproj" />
   <Project Path="Plugins/Plugin.MarshalFnPtrStatic/Plugin.MarshalFnPtrStatic.csproj" />
