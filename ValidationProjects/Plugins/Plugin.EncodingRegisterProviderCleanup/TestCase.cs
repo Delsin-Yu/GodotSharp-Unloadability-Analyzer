@@ -16,6 +16,21 @@ public class TestCase
     {
         Encoding.RegisterProvider(new CustomProvider());
         RemoveCollectibleProviders();
+
+        // Post-cleanup verification: built-in encodings should still work
+        var utf8 = System.Text.Encoding.GetEncoding("utf-8");
+        if (utf8 == null)
+            throw new InvalidOperationException("Post-cleanup Encoding.GetEncoding(utf-8) returned null");
+
+        var utf8ByCodepage = System.Text.Encoding.GetEncoding(65001);
+        if (utf8ByCodepage == null)
+            throw new InvalidOperationException("Post-cleanup Encoding.GetEncoding(65001) returned null");
+
+        var testString = "Hello, 世界! 🌍";
+        var encoded = utf8.GetBytes(testString);
+        var decoded = utf8.GetString(encoded);
+        if (decoded != testString)
+            throw new InvalidOperationException($"Post-cleanup UTF-8 encode/decode failed: got '{decoded}'");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

@@ -17,6 +17,13 @@ public class TestCase
     {
         JsonConvert.SerializeObject(new LocalType { Value = 42 });
         ClearCache();
+
+        // Post-cleanup verification: BCL types should still serialize/deserialize correctly
+        var dict = new Dictionary<string, int> { { "a", 1 }, { "b", 2 } };
+        var json = JsonConvert.SerializeObject(dict);
+        var roundTrip = JsonConvert.DeserializeObject<Dictionary<string, int>>(json);
+        if (roundTrip == null || roundTrip["a"] != 1 || roundTrip["b"] != 2)
+            throw new InvalidOperationException("Post-cleanup Newtonsoft BCL serialization failed for Dictionary<string,int>");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

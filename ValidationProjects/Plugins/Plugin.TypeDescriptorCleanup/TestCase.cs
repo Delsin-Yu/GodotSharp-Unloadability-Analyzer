@@ -26,6 +26,19 @@ public class TestCase
         // Clear remaining TypeDescriptor/ReflectTypeDescriptionProvider caches
         // that may still reference the collectible assembly.
         ClearTypeDescriptorCaches();
+
+        // Post-cleanup verification: BCL TypeDescriptor queries should still work
+        var intConverter = System.ComponentModel.TypeDescriptor.GetConverter(typeof(int));
+        if (intConverter == null || intConverter.GetType().Name != "Int32Converter")
+            throw new InvalidOperationException($"Post-cleanup TypeDescriptor.GetConverter(int) returned unexpected: {intConverter?.GetType().Name}");
+
+        var stringProps = System.ComponentModel.TypeDescriptor.GetProperties(typeof(string));
+        if (stringProps == null || stringProps.Count == 0)
+            throw new InvalidOperationException("Post-cleanup TypeDescriptor.GetProperties(string) returned empty");
+
+        var dateTimeConverter = System.ComponentModel.TypeDescriptor.GetConverter(typeof(DateTime));
+        if (dateTimeConverter == null || !dateTimeConverter.CanConvertFrom(typeof(string)))
+            throw new InvalidOperationException("Post-cleanup TypeDescriptor.GetConverter(DateTime) failed");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

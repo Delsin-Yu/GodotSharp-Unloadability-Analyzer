@@ -20,6 +20,24 @@ public class TestCase
 
         var clearedEntries = ClearCache();
         Console.WriteLine($"Brute-force cleanup touched {clearedEntries} cache slot(s).");
+
+        // Post-cleanup verification: BCL types should still serialize/deserialize correctly
+        var dict = new Dictionary<string, int> { { "a", 1 }, { "b", 2 } };
+        var json = JsonConvert.SerializeObject(dict);
+        var roundTrip = JsonConvert.DeserializeObject<Dictionary<string, int>>(json);
+        if (roundTrip == null || roundTrip["a"] != 1 || roundTrip["b"] != 2)
+            throw new InvalidOperationException("Post-cleanup Newtonsoft BCL serialization failed for Dictionary<string,int>");
+
+        // Complex post-cleanup verification
+        var complex = new List<Dictionary<string, object>>
+        {
+            new() { { "name", "test" }, { "value", 42 } },
+            new() { { "name", "other" }, { "value", 99 } }
+        };
+        var complexJson = JsonConvert.SerializeObject(complex);
+        var complexRoundTrip = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(complexJson);
+        if (complexRoundTrip == null || complexRoundTrip.Count != 2)
+            throw new InvalidOperationException("Post-cleanup Newtonsoft BCL serialization failed for complex nested type");
     }
 
     private static void ClearCache2()
