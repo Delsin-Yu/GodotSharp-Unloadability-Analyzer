@@ -10,31 +10,37 @@ internal static class Program
     {
         if (args.Length < 1)
         {
-            Console.Error.WriteLine("Usage: PluginHost <path-to-plugin.dll>");
+            Console.Error.WriteLine("Usage: PluginHost <path-to-plugin.dll> [more-dlls...]");
             return 2;
         }
 
-        string pluginPath = Path.GetFullPath(args[0]);
-        string pluginName = Path.GetFileNameWithoutExtension(pluginPath);
+        bool anyLeaked = false;
 
-        var weakRef = LoadAndExecute(pluginPath);
-
-        for (int i = 0; i < 10; i++)
+        foreach (string arg in args)
         {
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
+            string pluginPath = Path.GetFullPath(arg);
+            string pluginName = Path.GetFileNameWithoutExtension(pluginPath);
+
+            var weakRef = LoadAndExecute(pluginPath);
+
+            for (int i = 0; i < 10; i++)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+
+            if (weakRef.IsAlive)
+            {
+                Console.WriteLine($"FAIL (Leaked): {pluginName}");
+                anyLeaked = true;
+            }
+            else
+            {
+                Console.WriteLine($"PASS (Unloaded): {pluginName}");
+            }
         }
 
-        if (weakRef.IsAlive)
-        {
-            Console.WriteLine($"FAIL (Leaked): {pluginName}");
-            return 1;
-        }
-        else
-        {
-            Console.WriteLine($"PASS (Unloaded): {pluginName}");
-            return 0;
-        }
+        return anyLeaked ? 1 : 0;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
